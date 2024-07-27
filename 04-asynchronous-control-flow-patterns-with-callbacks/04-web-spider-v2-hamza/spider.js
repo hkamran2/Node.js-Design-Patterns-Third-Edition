@@ -16,13 +16,13 @@ const getFileNameFromURL = (url, cb) => {
 
 const downloadsBaseFilePath = path.resolve('downloaded')
 
-const downloadFile = (url, cb) => {
+const getFile = (url, cb) => {
+  Logger.info(`Downloading ${url}`)
   superagent.get(url, (err, res) => {
     if (err) {
       return cb(err)
     }
-
-    Logger.info(`Downloading ${url}`)
+    Logger.info(`Download of ${url} is completed.`)
     cb(null, res.text)
   })
 }
@@ -32,11 +32,20 @@ const saveFile = (filePath, text, cb) => {
     if (err) {
       return cb(err)
     }
-    writeFile(filePath, text, (err) => {
+    writeFile(filePath, text, cb)
+  })
+}
+
+const download = ({ url, filePath, fileName }, cb) => {
+  getFile(url, (err, text) => {
+    if (err) {
+      return cb(err)
+    }
+    saveFile(filePath, text, (err) => {
       if (err) {
         return cb(err)
       }
-      cb(null, filePath)
+      cb(null, fileName, true)
     })
   })
 }
@@ -50,24 +59,19 @@ export function spider (url, cb) {
     if (err) {
       return cb(err)
     }
+
     const filePath = path.resolve(downloadsBaseFilePath, fileName)
 
     access(filePath, err => {
-      if (err && err.code === 'ENOENT') {
-        downloadFile(url, (err, text) => {
-          if (err) {
-            return cb(err)
-          }
-          saveFile(filePath, text, (err) => {
-            if (err) {
-              return cb(err)
-            }
-            cb(null, fileName, true)
-          })
-        })
-      } else {
-        cb(null, fileName, false)
+      if (!err || err.code !== 'ENOENT') {
+        return cb(null, fileName, false)
       }
+
+      if (err && err.code !== 'ENOENT') {
+        return cb(err)
+      }
+
+      download({ url, fileName, filePath }, cb)
     })
   })
 }
