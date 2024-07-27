@@ -14,7 +14,32 @@ const getFileNameFromURL = (url, cb) => {
   }
 }
 
-const baseFilePath = path.resolve('downloaded')
+const downloadsBaseFilePath = path.resolve('downloaded')
+
+const downloadFile = (url, cb) => {
+  superagent.get(url, (err, res) => {
+    if (err) {
+      return cb(err)
+    }
+
+    Logger.info(`Downloading ${url}`)
+    cb(null, res.text)
+  })
+}
+
+const saveFile = (filePath, text, cb) => {
+  mkdir(downloadsBaseFilePath, { recursive: true }, (err) => {
+    if (err) {
+      return cb(err)
+    }
+    writeFile(filePath, text, (err) => {
+      if (err) {
+        return cb(err)
+      }
+      cb(null, filePath)
+    })
+  })
+}
 
 export function spider (url, cb) {
   if (!url) {
@@ -25,27 +50,19 @@ export function spider (url, cb) {
     if (err) {
       return cb(err)
     }
-    const filePath = path.resolve(baseFilePath, fileName)
+    const filePath = path.resolve(downloadsBaseFilePath, fileName)
 
     access(filePath, err => {
       if (err && err.code === 'ENOENT') {
-        superagent.get(url, (err, res) => {
+        downloadFile(url, (err, text) => {
           if (err) {
             return cb(err)
           }
-
-          Logger.info(`Downloading ${url}`)
-
-          mkdir(baseFilePath, { recursive: true }, (err) => {
+          saveFile(filePath, text, (err) => {
             if (err) {
               return cb(err)
             }
-            writeFile(filePath, res.text, (err) => {
-              if (err) {
-                return cb(err)
-              }
-              cb(null, fileName, true)
-            })
+            cb(null, fileName, true)
           })
         })
       } else {
