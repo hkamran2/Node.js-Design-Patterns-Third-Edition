@@ -3,6 +3,7 @@ import { access, mkdir, writeFile } from 'node:fs'
 import superagent from 'superagent'
 import path from 'node:path'
 import { Logger } from './logger.js'
+import cherrio from 'cheerio'
 
 const getFileNameFromURL = (url, cb) => {
   try {
@@ -37,10 +38,19 @@ const saveFile = (filePath, text, cb) => {
 }
 
 const download = ({ url, filePath, fileName }, cb) => {
+  const getLinks = (body) => {
+    const $ = cherrio.load(body)
+    const $a = $('a')
+    return $a.map((i, e) => {
+      Logger.info('Found link: ', e.attribs.href)
+    })
+  }
+
   getFile(url, (err, text) => {
     if (err) {
       return cb(err)
     }
+    getLinks(text)
     saveFile(filePath, text, (err) => {
       if (err) {
         return cb(err)
