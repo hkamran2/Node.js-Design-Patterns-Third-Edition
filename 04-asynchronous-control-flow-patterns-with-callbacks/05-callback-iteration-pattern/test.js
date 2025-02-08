@@ -13,17 +13,31 @@ const tasks = [
   }
 ]
 
-function iterate (index) {
+// function iterate (index) {
+//   if (index === tasks.length) {
+//     return finish()
+//   }
+//   const task = tasks[index]
+//   task(() => iterate(index + 1))
+// }
+
+// function finish () {
+//   // iteration completed
+//   console.log('All tasks executed')
+// }
+
+// iterate(0)
+
+function iterateSequentially (index, cb) {
   if (index === tasks.length) {
-    return finish()
+    return cb()
   }
+
   const task = tasks[index]
-  task(() => iterate(index + 1))
+
+  task(() => iterateSequentially(index + 1, cb))
 }
 
-function finish () {
-  // iteration completed
-  console.log('All tasks executed')
-}
-
-iterate(0)
+iterateSequentially(0, () => {
+  console.log('Done executing all the tasks')
+})
